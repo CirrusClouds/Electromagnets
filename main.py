@@ -1,4 +1,5 @@
 import numpy as np
+import matplotlib.pyplot as plt
 
 
 # Constants
@@ -26,7 +27,7 @@ class longstraightwire(magnet):
         return B, vecnorm
 
     def MagneticForce(self, B, vecnorm, charge, velocity):
-        angleBv = np.arccos(vecnorm * velocity)
+        angleBv = np.arccos(np.clip(np.dot(vecnorm, velocity), -1, -1))
         MF = B * charge * velocity * np.sin(angleBv)
         return MF
 
@@ -39,8 +40,8 @@ class Mover:
         self.charge = charge
 
     def EulerMethod(self, mag):
-        N = 10
-        timestep = 0.01
+        N = 100
+        timestep = 0.1
         N_max = int(N / timestep)
         position = np.zeros((N_max, 3))
         v = np.zeros((N_max,3))
@@ -52,17 +53,23 @@ class Mover:
         v[0] = self.v0
 
         for i in range(1,N_max):
-            B = mag.B_field((position[i-1]))[0]
-            vecnorm = mag.B_field((position[i-1]))[1]
+            B = mag.B_field(position[i-1])[0]
+            vecnorm = mag.B_field(position[i-1])[1]
             f[i-1] = mag.MagneticForce(B, vecnorm, self.charge, v[i-1])
             a[i-1] = f[i-1] / self.mass
             v[i] = v[i-1] + timestep * a[i-1]
             position[i] = position[i-1] + timestep * v[i]
 
-        return time, position, a
+        return time, position, f
 
 
-mag1 = longstraightwire(x=0,y=0,z=0,current=1000)
-electron = Mover(np.array([20, -20, 0]), np.array([40, 50, 0]), mass=Me, charge=qe)
-print(mag1.B_field(electron.position0))
-print(mag1.MagneticForce(mag1.B_field(electron.position0), Me, qe, electron.v0))
+mag1 = longstraightwire(x=0,y=0,z=0,current=10)
+electron = Mover(np.array([20, -20, 0]), np.array([40, -5000, 0]), mass=Me, charge=qe)
+movement = electron.EulerMethod(mag1)
+
+plt.figure()
+plt.plot(movement[0], movement[2])
+plt.show()
+plt.figure()
+plt.plot(movement[1][:, 0], movement[1][:, 1])
+plt.show()
