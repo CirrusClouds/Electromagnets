@@ -1,75 +1,32 @@
 import numpy as np
 import matplotlib.pyplot as plt
+from magnets import solenoid, longstraightwire
+
+# Graphing a B field for a slice of a long straight wire
+
+x = np.linspace(-5, 5, 100)
+y = np.linspace(-5, 5, 100)
 
 
-# Constants
-permeability = (1.257 * 10**-6)
-Me = (9.11 * 10**-31)
-qe = -(1.60 * 10**-19)
-
-class magnet:
-    def __init__(self, x, y, z):
-        self.x = x
-        self.y = y
-        self.z = z
-
-class longstraightwire(magnet):
-    def __init__(self, x, y, z, current):
-        self.current = current
-        super().__init__(x, y, z)
-
-
-    def B_field(self, position0):
-        currentvector = np.array([0, 0, 1])
-        distance = np.sqrt((position0[0] - self.x)**2 + (position0[1] - self.y)**2)
-        B = (permeability * self.current) / (2 * np.pi * distance)
-        vecnorm = np.array([(position0[1] * currentvector[2] - position0[2] * currentvector[1]), (position0[0] * currentvector[2] - position0[2] * currentvector[0]), (position0[0] * currentvector[1] - position0[1] * currentvector[0])])
-        return B, vecnorm
-
-    def MagneticForce(self, B, vecnorm, charge, velocity):
-        angleBv = np.arccos(np.clip(np.dot(vecnorm, velocity), -1, -1))
-        MF = B * charge * velocity * np.sin(angleBv)
-        return MF
-
-
-class Mover:
-    def __init__(self, position0, v0, mass, charge):
-        self.position0 = position0
-        self.v0 = v0
-        self.mass = mass
-        self.charge = charge
-
-    def EulerMethod(self, mag):
-        N = 100
-        timestep = 0.1
-        N_max = int(N / timestep)
-        position = np.zeros((N_max, 3))
-        v = np.zeros((N_max,3))
-        f = np.zeros((N_max,3))
-        a = np.zeros((N_max,3))
-        time = np.arange(1, N+1, timestep)
-
-        position[0] = self.position0
-        v[0] = self.v0
-
-        for i in range(1,N_max):
-            B = mag.B_field(position[i-1])[0]
-            vecnorm = mag.B_field(position[i-1])[1]
-            f[i-1] = mag.MagneticForce(B, vecnorm, self.charge, v[i-1])
-            a[i-1] = f[i-1] / self.mass
-            v[i] = v[i-1] + timestep * a[i-1]
-            position[i] = position[i-1] + timestep * v[i]
-
-        return time, position, f
-
-
-mag1 = longstraightwire(x=0,y=0,z=0,current=10)
-electron = Mover(np.array([20, -20, 0]), np.array([40, -5000, 0]), mass=Me, charge=qe)
-movement = electron.EulerMethod(mag1)
-
+mag1 = longstraightwire(x=0, y=0, current=50)
+B_fields = mag1.B_fieldstr(x, y)
 plt.figure()
-plt.plot(movement[0], movement[2])
+ax = plt.axes(projection='3d')
+ax.contour3D(x, y, B_fields, 50, cmap='binary')
+ax.view_init(30, 65)
 plt.show()
-plt.figure()
-plt.plot(movement[1][:, 0], movement[1][:, 1])
-plt.show()
+
+# Finding B fields for the inside of a solenoid
+
+sol1 = solenoid(r1=0.0125, r2=0.013, current=50, length=10)
+resistivity = 1.68E-8  # Ohm Meter
+packing = 0.75
+power = 100.0  # watts
+x1 = np.linspace(-5, 5, 100)
+x2 = x1 + sol1.length
+B_fields = np.zeros(100)
+G_fac = np.zeros(100)
+for i in range(len(B_fields)):
+    G_fac[i] = sol1.G_factor(x1=x1[i], x2=x2[i])
+    B_fields[i] = sol1.B_fieldsol(power, packing, resistivity, x1=x1[i], x2=x2[i])
+    # The B field is everywhere the same inside of the solenoid as expected except for the special case
