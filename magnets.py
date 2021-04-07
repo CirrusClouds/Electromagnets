@@ -1,9 +1,9 @@
 import numpy as np
 
 # Constants
-permeability = (1.257 * 10**-6)  # in free space
-Me = (9.11 * 10**-31)  # Mass of electron
-qe = -(1.60 * 10**-19)  # Charge of electron
+permeability = 1.257e-6  # in free space
+Me = 9.11e-31  # Mass of electron
+qe = -1.60e-19  # Charge of electron
 
 
 class longstraightwire:
@@ -14,13 +14,11 @@ class longstraightwire:
 
 
     def B_fieldstr(self, x, y):
-        B = np.zeros((100, 100))
-        for i in range(len(x)):
-            for j in range(len(y)):
-                distance = np.sqrt((x[i] - self.x)**2 + (y[j] - self.y)**2)
-                B[i,j] = (permeability * self.current) / (2 * np.pi * distance)
-
-        return B
+        i = 1
+        mag = (permeability/(2*np.pi))*(i/np.sqrt((x)**2 + (y)**2))
+        by = mag * (np.cos(np.arctan2(y, x)))
+        bx = mag * (-np.sin(np.arctan2(y, x)))
+        return bx, by
 
 
 class solenoid:
